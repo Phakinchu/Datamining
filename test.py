@@ -1,19 +1,58 @@
 import arff 
 import numpy as np
-import pprint
+import math
+from preprocessing import preprocessing,getoutputData,test,train
+
 
 dataset = arff.load(open('Autism-Child-Data.arff', 'rb'))
 data = np.array(dataset['data'])
 
+#Input array
+x = preprocessing(data,21)
+#Output
+y = train(x)
+y = getoutputData(y)
 
-def preprocessing(data_arff_file,number_of_attributes) :
-    for i in range(len(data_arff_file)) :
-        for j in range(number_of_attributes) :
-            print data_arff_file[i,j]
+#Sigmoid Function
+def sigmoid (x):
+    return 1/(1 + np.exp(-x))
 
-        break
+#Derivative of Sigmoid Function
+def derivatives_sigmoid(x):
+    return x * (1 - x)
 
-a = np.empty((0,3), int)
-        
+#Variable initialization
+epoch=5000 #Setting training iterations
+lr=0.1 #Setting learning rate
+inputlayer_neurons = x.shape[1] #number of features in data set
+hiddenlayer_neurons = 3 #number of hidden layers neurons
+output_neurons = 1 #number of neurons at output layer
 
-print a
+#weight and bias initialization
+wh=np.random.uniform(size=(inputlayer_neurons,hiddenlayer_neurons))
+bh=np.random.uniform(size=(1,hiddenlayer_neurons))
+wout=np.random.uniform(size=(hiddenlayer_neurons,output_neurons))
+bout=np.random.uniform(size=(1,output_neurons))
+
+for i in range(epoch):
+    #Forward Propogation
+    hidden_layer_input1=np.dot(x,wh)
+    hidden_layer_input=hidden_layer_input1 + bh
+    hiddenlayer_activations = sigmoid(hidden_layer_input)
+    output_layer_input1=np.dot(hiddenlayer_activations,wout)
+    output_layer_input= output_layer_input1+ bout
+    output = sigmoid(output_layer_input)
+
+    #Backpropagation
+    E = y-output
+    slope_output_layer = derivatives_sigmoid(output)
+    slope_hidden_layer = derivatives_sigmoid(hiddenlayer_activations)
+    d_output = E * slope_output_layer
+    Error_at_hidden_layer = d_output.dot(wout.T)
+    d_hiddenlayer = Error_at_hidden_layer * slope_hidden_layer
+    wout += hiddenlayer_activations.T.dot(d_output) *lr
+    bout += np.sum(d_output, axis=0,keepdims=True) *lr
+    wh += x.T.dot(d_hiddenlayer) *lr
+    bh += np.sum(d_hiddenlayer, axis=0,keepdims=True) *lr
+
+print output
